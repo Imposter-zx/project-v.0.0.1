@@ -1,0 +1,82 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+enum Role {
+  ADMIN
+  COMPANY
+  INDIVIDUAL
+}
+
+model User {
+  id              String           @id @default(uuid())
+  email           String           @unique
+  password        String
+  role            Role             @default(INDIVIDUAL)
+  profile         Profile?
+  readings        EnergyReading[]
+  budgets         Budget[]
+  alerts          Alert[]
+  recommendations Recommendation[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model Profile {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id])
+  name         String?
+  address      String?
+  bio          String?
+  location     String?
+  smartMeterId String?  @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model EnergyReading {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  amount    Float    // kWh
+  deviceId  String?
+  timestamp DateTime @default(now())
+}
+
+model Budget {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  limit     Float
+  period    String   // "Daily", "Monthly"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Alert {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String   // "ANOMALY", "BUDGET_EXCEEDED"
+  message   String
+  seen      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Recommendation {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  content     String
+  impactScore Float
+  createdAt   DateTime @default(now())
+}

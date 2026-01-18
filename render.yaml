@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: greenenergy-backend
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        value: file:./backend/prisma/dev.db
