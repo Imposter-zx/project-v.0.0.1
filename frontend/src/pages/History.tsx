@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { 
     History as HistoryIcon, 
+    Download, 
+    Zap, 
+    Calendar,
+    ChevronLeft,
     ChevronRight,
     Loader2
 } from 'lucide-react';

@@ -3,7 +3,6 @@ import {
     TrendingUp,
     AlertTriangle,
     Zap,
-    Calendar,
     CloudLightning,
     Activity,
     ArrowUpRight,
@@ -18,20 +17,10 @@ import {
     CartesianGrid,
     Tooltip,
     ResponsiveContainer,
-    BarChart,
-    Bar,
-    Cell
+    PieChart,
+    Pie
 } from 'recharts';
 
-const data = [
-    { name: 'Mon', consumption: 4000 },
-    { name: 'Tue', consumption: 3000 },
-    { name: 'Wed', consumption: 2000 },
-    { name: 'Thu', consumption: 2780 },
-    { name: 'Fri', consumption: 1890 },
-    { name: 'Sat', consumption: 2390 },
-    { name: 'Sun', consumption: 3490 },
-];
 
 import { useAuth } from '../context/AuthContext';
 import API_URL from '../config';
@@ -222,7 +211,7 @@ const Dashboard: React.FC = () => {
     );
 };
 
-const StatCard = ({ title, value, change, trend, icon: Icon, color, isMoney }: any) => {
+const StatCard = ({ title, value, change, trend, icon: Icon, color }: any) => {
     const colorMap: any = {
         blue: 'bg-blue-50 text-blue-600',
         emerald: 'bg-emerald-50 text-emerald-600',
