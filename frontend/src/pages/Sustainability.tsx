@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Leaf, TreeDeciduous, Wind, CloudRain, Droplets, Globe, Loader2, Award } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import API_URL from '../config';
 
 const Sustainability: React.FC = () => {
     const { token } = useAuth();
@@ -10,7 +11,7 @@ const Sustainability: React.FC = () => {
     useEffect(() => {
         const fetchMetrics = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/energy/sustainability', {
+                const response = await fetch(`${API_URL}/api/energy/sustainability`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (response.ok) {

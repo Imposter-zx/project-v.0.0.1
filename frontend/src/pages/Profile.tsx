@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, MapPin, FileText, Save, Loader2, Camera, Shield } from 'lucide-react';
+import { User, MapPin, FileText, Save, Loader2, Camera, Shield } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import API_URL from '../config';
 import toast from 'react-hot-toast';
 
 const Profile: React.FC = () => {
@@ -17,7 +18,7 @@ const Profile: React.FC = () => {
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/auth/profile', {
+                const response = await fetch(`${API_URL}/api/auth/profile`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (response.ok) {
@@ -42,7 +43,7 @@ const Profile: React.FC = () => {
         setSaving(true);
 
         try {
-            const response = await fetch('http://localhost:5000/api/auth/profile', {
+            const response = await fetch(`${API_URL}/api/auth/profile`, {
                 method: 'PUT',
                 headers: { 
                     'Content-Type': 'application/json',

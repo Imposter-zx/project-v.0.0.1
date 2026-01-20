@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Wallet, Target, Zap, TrendingUp, AlertCircle, Loader2, Save } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import API_URL from '../config';
 
 const BudgetSettings: React.FC = () => {
     const { token } = useAuth();
@@ -13,7 +14,7 @@ const BudgetSettings: React.FC = () => {
     useEffect(() => {
         const fetchBudget = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/energy/dashboard-stats', {
+                const response = await fetch(`${API_URL}/api/energy/dashboard-stats`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (response.ok) {
@@ -37,7 +38,7 @@ const BudgetSettings: React.FC = () => {
         setMessage(null);
 
         try {
-            const response = await fetch('http://localhost:5000/api/energy/budget', {
+            const response = await fetch(`${API_URL}/api/energy/budget`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',

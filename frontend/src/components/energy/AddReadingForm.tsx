@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Zap, Calendar, Smartphone, Loader2, CheckCircle2 } from 'lucide-react';
+import { Zap, Smartphone, Loader2, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import API_URL from '../../config';
 
 interface AddReadingFormProps {
     onSuccess?: () => void;
@@ -21,7 +22,7 @@ const AddReadingForm: React.FC<AddReadingFormProps> = ({ onSuccess }) => {
         setSuccess(false);
 
         try {
-            const response = await fetch('http://localhost:5000/api/energy/reading', {
+            const response = await fetch(`${API_URL}/api/energy/reading`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',

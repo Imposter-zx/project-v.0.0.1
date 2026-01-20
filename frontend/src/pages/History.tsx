@@ -2,16 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { 
     History as HistoryIcon, 
-    ArrowLeft, 
-    Download, 
-    Zap, 
-    Calendar,
-    ChevronLeft,
     ChevronRight,
     Loader2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import API_URL from '../config';
 
 const History: React.FC = () => {
     const { token } = useAuth();
@@ -22,7 +18,7 @@ const History: React.FC = () => {
     useEffect(() => {
         const fetchReadings = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/energy/readings', {
+                const response = await fetch(`${API_URL}/api/energy/readings`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (!response.ok) throw new Error('Failed to fetch readings');
@@ -40,7 +36,7 @@ const History: React.FC = () => {
 
     const handleDownloadReport = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/energy/report', {
+            const response = await fetch(`${API_URL}/api/energy/report`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const blob = await response.json(); // Wait, the backend returns PDF stream
@@ -52,7 +48,7 @@ const History: React.FC = () => {
 
     // Better download function
     const downloadPDF = () => {
-        window.open(`http://localhost:5000/api/energy/report?token=${token}`, '_blank');
+        window.open(`${API_URL}/api/energy/report?token=${token}`, '_blank');
     };
 
     if (loading) return (

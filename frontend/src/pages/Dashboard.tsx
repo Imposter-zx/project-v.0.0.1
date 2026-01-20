@@ -34,6 +34,7 @@ const data = [
 ];
 
 import { useAuth } from '../context/AuthContext';
+import API_URL from '../config';
 
 const Dashboard: React.FC = () => {
     const { token } = useAuth();
@@ -46,13 +47,13 @@ const Dashboard: React.FC = () => {
         const fetchData = async () => {
             try {
                 const [statsRes, summaryRes, recsRes] = await Promise.all([
-                    fetch('http://localhost:5000/api/energy/dashboard-stats', {
+                    fetch(`${API_URL}/api/energy/dashboard-stats`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     }),
-                    fetch('http://localhost:5000/api/energy/consumption-summary', {
+                    fetch(`${API_URL}/api/energy/consumption-summary`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     }),
-                    fetch('http://localhost:5000/api/energy/recommendations', {
+                    fetch(`${API_URL}/api/energy/recommendations`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     })
                 ]);

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, X, AlertTriangle, Info, CheckCircle, Clock } from 'lucide-react';
+import { Bell, X, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
+import API_URL from '../../config';
 
 interface Alert {
     id: string;
@@ -24,7 +25,7 @@ const AlertsPanel: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpe
 
     const fetchAlerts = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/energy/alerts', {
+            const response = await fetch(`${API_URL}/api/energy/alerts`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
@@ -40,7 +41,7 @@ const AlertsPanel: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpe
 
     const markAsRead = async (id: string) => {
         try {
-            const response = await fetch(`http://localhost:5000/api/energy/alerts/${id}/seen`, {
+            const response = await fetch(`${API_URL}/api/energy/alerts/${id}/seen`, {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
