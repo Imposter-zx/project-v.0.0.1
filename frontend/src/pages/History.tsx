@@ -1,63 +1,45 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { Calendar, Zap, History as HistoryIcon, Download, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import api from '../api/axios';
 import { format } from 'date-fns';
-import { 
-    History as HistoryIcon, 
-    Download, 
-    Zap, 
-    Calendar,
-    ChevronLeft,
-    ChevronRight,
-    Loader2
-} from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import API_URL from '../config';
 
 const History: React.FC = () => {
-    const { token } = useAuth();
-    const [readings, setReadings] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        const fetchReadings = async () => {
-            try {
-                const response = await fetch(`${API_URL}/api/energy/readings`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (!response.ok) throw new Error('Failed to fetch readings');
-                const data = await response.json();
-                setReadings(data);
-            } catch (err: any) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (token) fetchReadings();
-    }, [token]);
+    const { data: readings, isLoading, error } = useQuery({
+        queryKey: ['readings'],
+        queryFn: async () => {
+            const res = await api.get('/api/energy/readings');
+            return res.data;
+        }
+    });
 
     const handleDownloadReport = async () => {
         try {
-            const response = await fetch(`${API_URL}/api/energy/report`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+            const response = await api.get('/api/energy/report', {
+                responseType: 'blob'
             });
-            const blob = await response.json(); // Wait, the backend returns PDF stream
-            // Correction: the backend pipes the PDF. Frontend should handle it as a blob.
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `energy-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
         } catch (error) {
             console.error('Error downloading report:', error);
         }
     };
 
-    // Better download function
-    const downloadPDF = () => {
-        window.open(`${API_URL}/api/energy/report?token=${token}`, '_blank');
-    };
-
-    if (loading) return (
+    if (isLoading) return (
         <div className="flex items-center justify-center h-full">
             <Loader2 className="animate-spin text-primary-600" size={32} />
+        </div>
+    );
+
+    if (error) return (
+        <div className="p-8 text-center text-rose-600">
+            Error loading consumption logs.
         </div>
     );
 
@@ -73,7 +55,7 @@ const History: React.FC = () => {
                     <h2 className="text-2xl font-bold text-slate-800">Energy Consumption Logs</h2>
                 </div>
                 <button 
-                    onClick={downloadPDF}
+                    onClick={handleDownloadReport}
                     className="bg-primary-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-primary-700 transition-all shadow-lg shadow-primary-200"
                 >
                     <Download size={20} />
@@ -93,8 +75,8 @@ const History: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {readings.length > 0 ? (
-                                readings.map((reading) => (
+                            {readings && readings.length > 0 ? (
+                                readings.map((reading: any) => (
                                     <tr key={reading.id} className="hover:bg-slate-50/50 transition-colors group">
                                         <td className="px-8 py-5">
                                             <div className="flex items-center gap-3">
@@ -153,7 +135,7 @@ const History: React.FC = () => {
 
                 {/* Pagination (Mock) */}
                 <div className="px-8 py-6 bg-slate-50 flex items-center justify-between border-t border-slate-200">
-                    <p className="text-sm text-slate-500">Showing {readings.length} results</p>
+                    <p className="text-sm text-slate-500">Showing {readings?.length || 0} results</p>
                     <div className="flex items-center gap-2">
                         <button className="p-2 rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-slate-600 disabled:opacity-50">
                             <ChevronLeft size={20} />

@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Zap, Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import API_URL from '../config';
+import toast from 'react-hot-toast';
+import api from '../api/axios';
 
 const Login: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -18,22 +19,12 @@ const Login: React.FC = () => {
         setError(null);
 
         try {
-            const response = await fetch(`${API_URL}/api/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Login failed');
-            }
-
-            login(data.user, data.token);
+            const response = await api.post('/api/auth/login', { email, password });
+            login(response.data.user);
+            toast.success('Welcome back!');
             navigate('/');
         } catch (err: any) {
-            setError(err.message);
+            setError(err.response?.data?.message || 'Login failed');
         } finally {
             setIsLoading(false);
         }

@@ -11,7 +11,8 @@ export interface AuthRequest extends Request {
 }
 
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
-    let token = req.header('Authorization')?.replace('Bearer ', '');
+    // Try to get token from cookies first, then Authorization header
+    let token = req.cookies.token || req.header('Authorization')?.replace('Bearer ', '');
 
     if (!token && req.query.token) {
         token = req.query.token as string;

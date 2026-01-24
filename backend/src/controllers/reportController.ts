@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Response, NextFunction } from 'express';
 import PDFDocument from 'pdfkit';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 
 const prisma = new PrismaClient();
 
-export const generateEnergyReport = async (req: AuthRequest, res: Response) => {
+export const generateEnergyReport = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const userId = req.user!.userId;
         const user = await prisma.user.findUnique({

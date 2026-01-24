@@ -1,4 +1,6 @@
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import api from '../api/axios';
 import {
     TrendingUp,
     AlertTriangle,
@@ -17,55 +19,37 @@ import {
     CartesianGrid,
     Tooltip,
     ResponsiveContainer,
-    PieChart,
-    Pie
 } from 'recharts';
 
-
-import { useAuth } from '../context/AuthContext';
-import API_URL from '../config';
-
 const Dashboard: React.FC = () => {
-    const { token } = useAuth();
-    const [stats, setStats] = React.useState<any>(null);
-    const [chartData, setChartData] = React.useState<any[]>([]);
-    const [recommendations, setRecommendations] = React.useState<any[]>([]);
-    const [loading, setLoading] = React.useState(true);
-
-    React.useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [statsRes, summaryRes, recsRes] = await Promise.all([
-                    fetch(`${API_URL}/api/energy/dashboard-stats`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    }),
-                    fetch(`${API_URL}/api/energy/consumption-summary`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    }),
-                    fetch(`${API_URL}/api/energy/recommendations`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    })
-                ]);
-
-                if (statsRes.ok && summaryRes.ok && recsRes.ok) {
-                    const statsData = await statsRes.json();
-                    const summaryData = await summaryRes.json();
-                    const recsData = await recsRes.json();
-                    setStats(statsData);
-                    setChartData(summaryData);
-                    setRecommendations(recsData);
-                }
-            } catch (error) {
-                console.error('Error fetching dashboard data:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (token) {
-            fetchData();
+    // 1. Fetch Stats
+    const { data: stats, isLoading: statsLoading } = useQuery({
+        queryKey: ['dashboard-stats'],
+        queryFn: async () => {
+            const res = await api.get('/api/energy/dashboard-stats');
+            return res.data;
         }
-    }, [token]);
+    });
+
+    // 2. Fetch Consumption Summary (Chart Data)
+    const { data: chartData, isLoading: chartLoading } = useQuery({
+        queryKey: ['consumption-summary'],
+        queryFn: async () => {
+            const res = await api.get('/api/energy/consumption-summary');
+            return res.data;
+        }
+    });
+
+    // 3. Fetch Recommendations
+    const { data: recommendations, isLoading: recsLoading } = useQuery({
+        queryKey: ['recommendations'],
+        queryFn: async () => {
+            const res = await api.get('/api/energy/recommendations');
+            return res.data;
+        }
+    });
+
+    const loading = statsLoading || chartLoading || recsLoading;
 
     if (loading) {
         return (
@@ -131,7 +115,7 @@ const Dashboard: React.FC = () => {
                     </div>
                     <div className="h-80 w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={chartData.length > 0 ? chartData : [{name: 'No data', consumption: 0}]}>
+                            <AreaChart data={chartData && chartData.length > 0 ? chartData : [{name: 'No data', consumption: 0}]}>
                                 <defs>
                                     <linearGradient id="colorUsage" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor="#3d9451" stopOpacity={0.1} />
@@ -170,10 +154,7 @@ const Dashboard: React.FC = () => {
                 {/* Right Column: AI Suggestions & Add Reading */}
                 <div className="space-y-8">
                     {/* Add Reading Form */}
-                    <AddReadingForm onSuccess={() => {
-                        // Refresh dashboard data
-                        window.location.reload(); 
-                    }} />
+                    <AddReadingForm />
 
                     {/* AI Suggestions */}
                     <div className="bg-primary-900 rounded-3xl p-8 text-white relative overflow-hidden flex flex-col justify-between shadow-xl shadow-primary-900/20 h-fit">
@@ -183,8 +164,8 @@ const Dashboard: React.FC = () => {
                             </div>
                             <h3 className="text-xl font-bold mb-4">AI Recommendations</h3>
                         <div className="space-y-4">
-                            {recommendations.length > 0 ? (
-                                recommendations.map((rec, idx) => (
+                            {recommendations && recommendations.length > 0 ? (
+                                recommendations.map((rec: any, idx: number) => (
                                     <SuggestionItem
                                         key={idx}
                                         text={rec.content}

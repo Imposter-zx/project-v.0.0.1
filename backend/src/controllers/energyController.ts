@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
 import { detectAnomalies, predictNextDayConsumption } from '../services/energyService';
@@ -6,7 +6,7 @@ import { startOfDay, subDays, format } from 'date-fns';
 
 const prisma = new PrismaClient();
 
-export const addReading = async (req: AuthRequest, res: Response) => {
+export const addReading = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const { amount, deviceId, timestamp } = req.body;
         const userId = req.user!.userId;
@@ -63,11 +63,11 @@ export const addReading = async (req: AuthRequest, res: Response) => {
 
         res.status(201).json({ reading, isAnomaly });
     } catch (error) {
-        res.status(500).json({ message: 'Error adding reading', error });
+        next(error);
     }
 };
 
-export const getReadings = async (req: AuthRequest, res: Response) => {
+export const getReadings = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const userId = req.user!.userId;
         const readings = await prisma.energyReading.findMany({
@@ -77,93 +77,84 @@ export const getReadings = async (req: AuthRequest, res: Response) => {
         });
         res.json(readings);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching readings', error });
+        next(error);
     }
 };
 
-export const getConsumptionSummary = async (req: AuthRequest, res: Response) => {
+export const getConsumptionSummary = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const userId = req.user!.userId;
-        const last7Days = Array.from({ length: 7 }, (_, i) => {
+        const sevenDaysAgo = subDays(new Date(), 7);
+        
+        // Single query for all readings in the last 7 days
+        const readings = await prisma.energyReading.findMany({
+            where: {
+                userId,
+                timestamp: { gte: sevenDaysAgo }
+            },
+            orderBy: { timestamp: 'asc' }
+        });
+
+        // Group by day in memory for simplicity (since it's only 7 days of data)
+        const daysMap: Record<string, number> = {};
+        for (let i = 0; i < 7; i++) {
             const date = subDays(new Date(), i);
-            return startOfDay(date);
-        }).reverse();
+            daysMap[format(date, 'EEE')] = 0;
+        }
 
-        const summary = await Promise.all(
-            last7Days.map(async (date) => {
-                const nextDay = new Date(date);
-                nextDay.setDate(date.getDate() + 1);
+        readings.forEach(r => {
+            const dayName = format(r.timestamp, 'EEE');
+            if (daysMap[dayName] !== undefined) {
+                daysMap[dayName] += r.amount;
+            }
+        });
 
-                const total = await prisma.energyReading.aggregate({
-                    where: {
-                        userId,
-                        timestamp: {
-                            gte: date,
-                            lt: nextDay,
-                        },
-                    },
-                    _sum: { amount: true },
-                });
-
-                return {
-                    name: format(date, 'EEE'),
-                    consumption: total._sum.amount || 0,
-                };
-            })
-        );
-
+        const summary = Object.entries(daysMap).map(([name, consumption]) => ({ name, consumption })).reverse();
         res.json(summary);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching summary', error });
+        next(error);
     }
 };
 
-export const getDashboardStats = async (req: AuthRequest, res: Response) => {
+export const getDashboardStats = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const userId = req.user!.userId;
-
-        // 1. Current Usage (Last 24h)
         const dayAgo = subDays(new Date(), 1);
-        const currentUsage = await prisma.energyReading.aggregate({
-            where: { userId, timestamp: { gte: dayAgo } },
-            _sum: { amount: true }
-        });
-
-        // 2. Prediction
-        const prediction = await predictNextDayConsumption(userId);
-
-        // 3. Active Alerts
-        const alertCount = await prisma.alert.count({
-            where: { userId, seen: false }
-        });
-
-        // 4. Monthly Budget vs Spent
         const startOfMonth = new Date();
         startOfMonth.setDate(1);
         startOfMonth.setHours(0, 0, 0, 0);
 
-        const monthlySpent = await prisma.energyReading.aggregate({
-            where: { userId, timestamp: { gte: startOfMonth } },
-            _sum: { amount: true }
-        });
-
-        const budget = await prisma.budget.findFirst({
-            where: { userId, period: 'Monthly' }
-        });
+        const [currentUsage, prediction, activeAlerts, monthlySpent, budget] = await Promise.all([
+            prisma.energyReading.aggregate({
+                where: { userId, timestamp: { gte: dayAgo } },
+                _sum: { amount: true }
+            }),
+            predictNextDayConsumption(userId),
+            prisma.alert.count({
+                where: { userId, seen: false }
+            }),
+            prisma.energyReading.aggregate({
+                where: { userId, timestamp: { gte: startOfMonth } },
+                _sum: { amount: true }
+            }),
+            prisma.budget.findFirst({
+                where: { userId, period: 'Monthly' }
+            })
+        ]);
 
         res.json({
             currentUsage: (currentUsage._sum.amount || 0).toFixed(1),
             prediction: prediction ? prediction.toFixed(1) : 'N/A',
-            alertCount,
+            alertCount: activeAlerts,
             monthlySpent: (monthlySpent._sum.amount || 0).toFixed(1),
             budgetLimit: budget?.limit || 0
         });
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching stats', error });
+        next(error);
     }
 };
 
-export const updateBudget = async (req: AuthRequest, res: Response) => {
+export const updateBudget = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const { limit, period = 'Monthly' } = req.body;
         const userId = req.user!.userId;
@@ -175,11 +166,11 @@ export const updateBudget = async (req: AuthRequest, res: Response) => {
 
         res.json(budget);
     } catch (error) {
-        res.status(500).json({ message: 'Error updating budget', error });
+        next(error);
     }
 };
 
-export const getAlerts = async (req: AuthRequest, res: Response) => {
+export const getAlerts = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const userId = req.user!.userId;
         const alerts = await prisma.alert.findMany({
@@ -189,11 +180,11 @@ export const getAlerts = async (req: AuthRequest, res: Response) => {
         });
         res.json(alerts);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching alerts', error });
+        next(error);
     }
 };
 
-export const markAlertAsSeen = async (req: AuthRequest, res: Response) => {
+export const markAlertAsSeen = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const { id } = req.params;
         const alert = await prisma.alert.update({
@@ -202,11 +193,11 @@ export const markAlertAsSeen = async (req: AuthRequest, res: Response) => {
         });
         res.json(alert);
     } catch (error) {
-        res.status(500).json({ message: 'Error updating alert', error });
+        next(error);
     }
 };
 
-export const getRecommendations = async (req: AuthRequest, res: Response) => {
+export const getRecommendations = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const userId = req.user!.userId;
         const recommendations = await prisma.recommendation.findMany({
@@ -225,11 +216,11 @@ export const getRecommendations = async (req: AuthRequest, res: Response) => {
 
         res.json(recommendations);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching recommendations', error });
+        next(error);
     }
 };
 
-export const getSustainabilityMetrics = async (req: AuthRequest, res: Response) => {
+export const getSustainabilityMetrics = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const userId = req.user!.userId;
         
@@ -250,6 +241,6 @@ export const getSustainabilityMetrics = async (req: AuthRequest, res: Response) 
             impactLevel: totalKWh < 100 ? 'Low' : totalKWh < 500 ? 'Moderate' : 'High'
         });
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching sustainability metrics', error });
+        next(error);
     }
 };

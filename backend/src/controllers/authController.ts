@@ -1,12 +1,18 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
+const COOKIE_OPTIONS = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+};
 
-export const register = async (req: Request, res: Response) => {
+export const register = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { email, password, role, name } = req.body;
 
@@ -34,13 +40,14 @@ export const register = async (req: Request, res: Response) => {
 
         const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
 
-        res.status(201).json({ user, token });
+        res.cookie('token', token, COOKIE_OPTIONS);
+        res.status(201).json({ user });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
+        next(error);
     }
 };
 
-export const login = async (req: Request, res: Response) => {
+export const login = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { email, password } = req.body;
 
@@ -60,10 +67,16 @@ export const login = async (req: Request, res: Response) => {
 
         const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
 
-        res.json({ user, token });
+        res.cookie('token', token, COOKIE_OPTIONS);
+        res.json({ user });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
+        next(error);
     }
+};
+
+export const logout = async (req: Request, res: Response) => {
+    res.clearCookie('token');
+    res.json({ message: 'Logged out successfully' });
 };
 
 export const getProfile = async (req: any, res: Response) => {

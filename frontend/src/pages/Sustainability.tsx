@@ -1,34 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { Leaf, TreeDeciduous, Wind, CloudRain, Droplets, Globe, Loader2, Award } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import API_URL from '../config';
+import React from 'react';
+import { Leaf, TreeDeciduous, Wind, Globe, Loader2, Award, CloudRain, Droplets } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import api from '../api/axios';
 
 const Sustainability: React.FC = () => {
-    const { token } = useAuth();
-    const [metrics, setMetrics] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
+    const { data: metrics, isLoading } = useQuery({
+        queryKey: ['sustainability-metrics'],
+        queryFn: async () => {
+            const res = await api.get('/api/energy/sustainability');
+            return res.data;
+        }
+    });
 
-    useEffect(() => {
-        const fetchMetrics = async () => {
-            try {
-                const response = await fetch(`${API_URL}/api/energy/sustainability`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    setMetrics(data);
-                }
-            } catch (error) {
-                console.error('Error fetching sustainability metrics:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (token) fetchMetrics();
-    }, [token]);
-
-    if (loading) return (
+    if (isLoading) return (
         <div className="flex items-center justify-center h-full">
             <Loader2 className="animate-spin text-emerald-600" size={32} />
         </div>
@@ -53,7 +37,7 @@ const Sustainability: React.FC = () => {
                     <div className="relative z-10">
                         <h3 className="text-emerald-100 font-bold uppercase tracking-widest text-sm mb-8">Carbon Offset Summary</h3>
                         <div className="flex items-end gap-4 mb-10">
-                            <span className="text-7xl font-black">{metrics?.co2Saved.toFixed(1)}</span>
+                            <span className="text-7xl font-black">{metrics?.co2Saved?.toFixed(1) || 0}</span>
                             <span className="text-2xl font-bold mb-3">kg CO₂ Saved</span>
                         </div>
                         
@@ -64,7 +48,7 @@ const Sustainability: React.FC = () => {
                                 </div>
                                 <div>
                                     <p className="text-emerald-100 text-sm font-medium">Trees Equivalent</p>
-                                    <p className="text-xl font-bold">{metrics?.treesEquivalent} Trees</p>
+                                    <p className="text-xl font-bold">{metrics?.treesEquivalent || 0} Trees</p>
                                 </div>
                             </div>
                             <div className="flex items-start gap-4">
@@ -73,7 +57,7 @@ const Sustainability: React.FC = () => {
                                 </div>
                                 <div>
                                     <p className="text-emerald-100 text-sm font-medium">Impact Level</p>
-                                    <p className="text-xl font-bold">{metrics?.impactLevel}</p>
+                                    <p className="text-xl font-bold">{metrics?.impactLevel || 'Low'}</p>
                                 </div>
                             </div>
                         </div>
@@ -94,11 +78,11 @@ const Sustainability: React.FC = () => {
                         </div>
                         <h3 className="text-xl font-bold text-slate-800 mb-2">Carbon Footprint</h3>
                         <p className="text-slate-500 text-sm leading-relaxed mb-8">
-                            Based on your total consumption of <span className="font-bold text-slate-800">{metrics?.totalKWh} kWh</span>, 
+                            Based on your total consumption of <span className="font-bold text-slate-800">{metrics?.totalKWh || 0} kWh</span>, 
                             your current estimated footprint is:
                         </p>
                         <div className="flex items-baseline gap-2">
-                            <span className="text-4xl font-black text-slate-800">{metrics?.carbonFootprint.toFixed(1)}</span>
+                            <span className="text-4xl font-black text-slate-800">{metrics?.carbonFootprint?.toFixed(1) || 0}</span>
                             <span className="text-slate-400 font-bold">kg CO₂e</span>
                         </div>
                     </div>

@@ -1,57 +1,37 @@
 import React, { useState } from 'react';
 import { Zap, Smartphone, Loader2, CheckCircle2 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import API_URL from '../../config';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import api from '../../api/axios';
 
-interface AddReadingFormProps {
-    onSuccess?: () => void;
-}
-
-const AddReadingForm: React.FC<AddReadingFormProps> = ({ onSuccess }) => {
-    const { token } = useAuth();
+const AddReadingForm: React.FC = () => {
+    const queryClient = useQueryClient();
     const [amount, setAmount] = useState('');
     const [deviceId, setDeviceId] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsLoading(true);
-        setError(null);
-        setSuccess(false);
-
-        try {
-            const response = await fetch(`${API_URL}/api/energy/reading`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ 
-                    amount: parseFloat(amount), 
-                    deviceId,
-                    timestamp: new Date()
-                }),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Failed to add reading');
-            }
-
+    const mutation = useMutation({
+        mutationFn: async (newReading: any) => {
+            const res = await api.post('/api/energy/reading', newReading);
+            return res.data;
+        },
+        onSuccess: () => {
             setSuccess(true);
             setAmount('');
             setDeviceId('');
-            if (onSuccess) onSuccess();
-            
+            // Invalidate and refetch dashboard data
+            queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+            queryClient.invalidateQueries({ queryKey: ['consumption-summary'] });
             setTimeout(() => setSuccess(false), 3000);
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setIsLoading(false);
         }
+    });
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        mutation.mutate({ 
+            amount: parseFloat(amount), 
+            deviceId,
+            timestamp: new Date()
+        });
     };
 
     return (
@@ -63,9 +43,9 @@ const AddReadingForm: React.FC<AddReadingFormProps> = ({ onSuccess }) => {
                 <h3 className="text-xl font-bold text-slate-800">Add Energy Reading</h3>
             </div>
 
-            {error && (
+            {mutation.error && (
                 <div className="bg-rose-50 text-rose-600 p-4 rounded-xl text-sm mb-6 border border-rose-100">
-                    {error}
+                    {(mutation.error as any).response?.data?.message || mutation.error.message}
                 </div>
             )}
 
@@ -109,10 +89,10 @@ const AddReadingForm: React.FC<AddReadingFormProps> = ({ onSuccess }) => {
 
                 <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={mutation.isPending}
                     className="w-full bg-primary-600 text-white font-bold py-4 rounded-2xl hover:bg-primary-700 transition-all flex items-center justify-center gap-2 disabled:opacity-70 shadow-lg shadow-primary-200"
                 >
-                    {isLoading ? (
+                    {mutation.isPending ? (
                         <Loader2 className="animate-spin" size={20} />
                     ) : (
                         'Submit Reading'

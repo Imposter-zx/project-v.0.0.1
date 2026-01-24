@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import api from '../api/axios';
 
 interface User {
     id: string;
@@ -11,8 +12,8 @@ interface User {
 
 interface AuthContextType {
     user: User | null;
-    token: string | null;
-    login: (user: User, token: string) => void;
+    isAuthenticated: boolean;
+    login: (user: User) => void;
     logout: () => void;
     updateUser: (user: User) => void;
     loading: boolean;
@@ -22,38 +23,43 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
-    const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const savedUser = localStorage.getItem('user');
-        if (savedUser && token) {
-            setUser(JSON.parse(savedUser));
-        }
-        setLoading(false);
-    }, [token]);
+        const checkAuth = async () => {
+            try {
+                const response = await api.get('/api/auth/profile');
+                if (response.data) {
+                    setUser(response.data.user || response.data);
+                }
+            } catch (error) {
+                console.error('Not authenticated');
+            } finally {
+                setLoading(false);
+            }
+        };
+        checkAuth();
+    }, []);
 
-    const login = (newUser: User, newToken: string) => {
+    const login = (newUser: User) => {
         setUser(newUser);
-        setToken(newToken);
-        localStorage.setItem('token', newToken);
-        localStorage.setItem('user', JSON.stringify(newUser));
     };
 
-    const logout = () => {
-        setUser(null);
-        setToken(null);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+    const logout = async () => {
+        try {
+            await api.post('/api/auth/logout');
+            setUser(null);
+        } catch (error) {
+            console.error('Logout failed');
+        }
     };
 
     const updateUser = (newUser: User) => {
         setUser(newUser);
-        localStorage.setItem('user', JSON.stringify(newUser));
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, login, logout, updateUser, loading }}>
+        <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout, updateUser, loading }}>
             {children}
         </AuthContext.Provider>
     );

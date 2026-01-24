@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, login, getProfile, updateProfile } from '../controllers/authController';
+import { register, login, logout, getProfile, updateProfile } from '../controllers/authController';
 import { addReading, getReadings, getDashboardStats, getConsumptionSummary, updateBudget, getAlerts, markAlertAsSeen, getRecommendations, getSustainabilityMetrics } from '../controllers/energyController';
 import { generateEnergyReport } from '../controllers/reportController';
 import { authenticate } from '../middleware/auth';
@@ -9,6 +9,7 @@ const router = Router();
 // Auth routes
 router.post('/auth/register', register);
 router.post('/auth/login', login);
+router.post('/auth/logout', logout);
 router.get('/auth/profile', authenticate, getProfile);
 router.put('/auth/profile', authenticate, updateProfile);
 
