@@ -29,8 +29,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const checkAuth = async () => {
             try {
                 const response = await api.get('/api/auth/profile');
-                if (response.data) {
-                    setUser(response.data.user || response.data);
+                if (response.data && response.data.user) {
+                    setUser(response.data.user);
                 }
             } catch (error) {
                 console.error('Not authenticated');

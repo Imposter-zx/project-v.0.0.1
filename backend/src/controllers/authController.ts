@@ -40,8 +40,10 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
 
         const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
 
+        const { password: _, ...userWithoutPassword } = user;
+
         res.cookie('token', token, COOKIE_OPTIONS);
-        res.status(201).json({ user });
+        res.status(201).json({ user: userWithoutPassword });
     } catch (error) {
         next(error);
     }
@@ -67,8 +69,10 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 
         const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
 
+        const { password: _, ...userWithoutPassword } = user;
+
         res.cookie('token', token, COOKIE_OPTIONS);
-        res.json({ user });
+        res.json({ user: userWithoutPassword });
     } catch (error) {
         next(error);
     }
@@ -82,11 +86,17 @@ export const logout = async (req: Request, res: Response) => {
 export const getProfile = async (req: any, res: Response) => {
     try {
         const userId = req.user.userId;
-        const profile = await prisma.profile.findUnique({
-            where: { userId },
-            include: { user: { select: { email: true, role: true } } }
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            include: { profile: true },
         });
-        res.json(profile);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const { password: _, ...userWithoutPassword } = user;
+        res.json({ user: userWithoutPassword });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching profile', error });
     }

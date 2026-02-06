@@ -8,6 +8,7 @@ import api from '../api/axios';
 const Login: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [rememberMe, setRememberMe] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { login } = useAuth();
@@ -86,10 +87,21 @@ const Login: React.FC = () => {
 
                         <div className="flex items-center justify-between text-sm py-2">
                             <label className="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" className="rounded border-slate-300 text-primary-600 focus:ring-primary-500" />
+                                <input 
+                                    type="checkbox" 
+                                    checked={rememberMe}
+                                    onChange={(e) => setRememberMe(e.target.checked)}
+                                    className="rounded border-slate-300 text-primary-600 focus:ring-primary-500" 
+                                />
                                 <span className="text-slate-600">Remember me</span>
                             </label>
-                            <a href="#" className="text-primary-600 font-semibold hover:text-primary-700">Forgot password?</a>
+                            <button 
+                                type="button"
+                                onClick={() => toast.error('Password reset is not available yet. Please contact support.')}
+                                className="text-primary-600 font-semibold hover:text-primary-700"
+                            >
+                                Forgot password?
+                            </button>
                         </div>
 
                         <button
